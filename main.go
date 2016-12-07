@@ -553,50 +553,54 @@ func (c *CNKIDownloader) SearchNext(pageNum int) (*CNKISearchResult, error) {
 		return nil, fmt.Errorf("Internal unknown error")
 	}
 
-	if c.search_cache.current.Next() != nil {
+	//if c.search_cache.current.Next() != nil {
 		//
 		// next page is present
 		//
-		item := c.search_cache.current.Next()
-		s := item.Value.(*CNKISearchResult)
+		//item := c.search_cache.current.Next()
+		//s := item.Value.(*CNKISearchResult)
 
 		//
 		// switch
 		//
-		c.search_cache.current = item
+		//c.search_cache.current = item
 
-		return s, nil
-	} else {
+		//return s, nil
+	//} else {
 		//
 		// next page is invalid , we should query from server
 		//
-		s, err := c.Search(c.search_cache.keyword, c.search_cache.option, pageNum)
-		if err == nil {
-			c.search_cache.current = c.search_cache.result_list.PushBack(s)
-		}
-		return s, err
+	s, err := c.Search(c.search_cache.keyword, c.search_cache.option, pageNum)
+	if err == nil {
+		c.search_cache.current = c.search_cache.result_list.PushBack(s)
 	}
+	return s, err
+	//}
 }
 
 //
 // get previous page
 //
-func (c *CNKIDownloader) SearchPrev() (*CNKISearchResult, error) {
+func (c *CNKIDownloader) SearchPrev(pageNum int) (*CNKISearchResult, error) {
 	if c.search_cache.current == nil {
 		return nil, fmt.Errorf("SearchPrev should be called when you already called SearchNext")
 	}
 
-	if c.search_cache.current.Prev() == nil {
-		return nil, fmt.Errorf("No more previous data")
-	}
+	//if c.search_cache.current.Prev() == nil {
+	//	return nil, fmt.Errorf("No more previous data")
+	//}
 
-	item := c.search_cache.current.Prev()
-	s := item.Value.(*CNKISearchResult)
+	s, err := c.Search(c.search_cache.keyword, c.search_cache.option, pageNum)
+	//item := c.search_cache.current.Prev()
+	//s := item.Value.(*CNKISearchResult)
 
 	//
 	// switch
 	//
-	c.search_cache.current = item
+	//c.search_cache.current = item
+	if err == nil {
+		c.search_cache.current = c.search_cache.result_list.PushBack(s)
+	}
 
 	return s, nil
 }
@@ -1216,7 +1220,18 @@ func main() {
 				}
 			case "next":
 				{
-					next_page, err := downloader.SearchNext(pindex + 1)
+					pnum := 1
+					if len(cmd_parts) >= 2 {
+						num, err := strconv.ParseInt(cmd_parts[1], 10, 32)
+						if err != nil {
+							fmt.Fprintf(color.Output, "Invalid input %s\n", color.RedString(err.Error()))
+							break
+						}
+						if num > 0 {
+							pnum = int(num)
+						}
+					}
+					next_page, err := downloader.SearchNext(pindex + pnum)
 					if err != nil {
 						fmt.Fprintf(color.Output, "Next page is invalid (%s)\n", color.RedString(err.Error()))
 					} else {
@@ -1226,7 +1241,24 @@ func main() {
 				}
 			case "prev":
 				{
-					prev_page, err := downloader.SearchPrev()
+					pnum := 1
+					if len(cmd_parts) >= 2 {
+						num, err := strconv.ParseInt(cmd_parts[1], 10, 32)
+						if err != nil {
+							fmt.Fprintf(color.Output, "Invalid input %s\n", color.RedString(err.Error()))
+							break
+						}
+						if num > 0 {
+							pnum = int(num)
+						}
+					}
+
+					if pindex-pnum <= 0 {
+						color.Red("Previous page number is invalid")
+						continue
+					}
+
+					prev_page, err := downloader.SearchPrev(pindex - pnum)
 					if err != nil {
 						color.Red("Previous page is invalid")
 					} else {
